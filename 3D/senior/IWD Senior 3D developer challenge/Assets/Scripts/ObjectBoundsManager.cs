@@ -7,12 +7,11 @@ public class ObjectBoundsManager : MonoBehaviour
     [SerializeField] List<Collider> listObjectCollider;
     [SerializeField] List<bool> listObjectInSight;
 
-    CameraViewAllObjectController cameraController;
-
     public Material[] listMaterial;
 
     Vector3 middlePointObjects = Vector3.zero;
-    Vector3 minBounds, maxBounds;
+
+    private CameraViewAllObjectController cameraController;
 
     private void Awake()
     {
@@ -24,56 +23,34 @@ public class ObjectBoundsManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        //Récupère tous les objets de la scène
         GameObject[] listGameObject = GameObject.FindGameObjectsWithTag("ObjectToDisplay");
         for(int i=0; i<listGameObject.Length; i++)
         {
+            //L'objet a besoin d'un collider. S'il n'en a pas il n'est pas valide on ne va pas le prendre en compte
             Collider tmp = listGameObject[i].GetComponent<Collider>();
             if (tmp != null)
             {
-                if(i==0)
-                {
-                    minBounds = maxBounds = tmp.transform.position;
-                }
-                else
-                {
-                    UpdateObjectsBounds(tmp.transform);
-                }
 
+                //Ajoute le collider à la liste et détermine si l'objet est déjà visible ou pas
                 listObjectCollider.Add(tmp);
                 listObjectInSight.Add(IsObjectInSight(tmp));
 
-                //middlePointObjects += listObjectCollider[i].transform.position;
+                middlePointObjects += tmp.transform.position;
             }
         }
         middlePointObjects /= listObjectCollider.Count;
 
-        cameraController.CalculateTargetPoint(minBounds, maxBounds);
+        cameraController.CalculateTargetPoint(middlePointObjects);
     }
 
-    void UpdateObjectsBounds(Transform obj)
-    {
-        if (minBounds.x > obj.position.x)
-            minBounds.x = obj.position.x;
-        if (minBounds.y > obj.position.y)
-            minBounds.y = obj.position.y;
-        if (minBounds.z > obj.position.z)
-            minBounds.z = obj.position.z;
-        if (maxBounds.x < obj.position.x)
-            maxBounds.x = obj.position.x;
-        if (maxBounds.y < obj.position.y)
-            maxBounds.y = obj.position.y;
-        if (maxBounds.z < obj.position.z)
-            maxBounds.z = obj.position.z;
-    }
 
     // Update is called once per frame
     void Update()
     {
-        ///TMP
-        
+        //Met à jour la liste des objets visibles et affiche les 
         for(int i=0; i<listObjectCollider.Count; i++)
         {
-
             listObjectInSight[i] = IsObjectInSight(listObjectCollider[i]);
             if (listObjectInSight[i])
             {
@@ -84,13 +61,10 @@ public class ObjectBoundsManager : MonoBehaviour
                 listObjectCollider[i].GetComponent<MeshRenderer>().material = listMaterial[1];
             }
         }
-
-
-        //Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, middlePointObjects, 1 * Time.deltaTime);
-
-        ///TMP
+        cameraController.allObjectsInSight = AllObjectInSight();
     }
 
+    //Test si l'objet est dans le champs de vision de la caméra, même s'il est derrière un autre objet.
     public bool IsObjectInSight(Collider objCollider)
     {
         return GeometryUtility.TestPlanesAABB(cameraController.Planes, objCollider.bounds);
